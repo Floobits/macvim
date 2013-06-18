@@ -1148,7 +1148,7 @@ getcount:
 	out_flush();
 #endif
 #ifdef FEAT_AUTOCMD
-    if (ca.cmdchar != K_IGNORE)
+    // if (ca.cmdchar != K_IGNORE)
 	did_cursorhold = FALSE;
 #endif
 
