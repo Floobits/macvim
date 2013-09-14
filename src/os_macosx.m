@@ -23,7 +23,21 @@
 #include "vim.h"
 #import <Cocoa/Cocoa.h>
 
+#include <mach/mach.h>
+#include <mach/mach_time.h>
 
+
+#define MCH_MONOTONIC_TIME
+   unsigned long long
+mch_monotonic_time(void)
+{
+   mach_timebase_info_data_t info;
+
+   if (mach_timebase_info(&info) != KERN_SUCCESS)
+       abort();
+
+   return (mach_absolute_time() * info.numer / info.denom) / 1000000;
+}
 /*
  * Clipboard support for the console.
  * Don't include this when building the GUI version, the functions in

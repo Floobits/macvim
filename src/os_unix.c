@@ -883,6 +883,17 @@ init_signal_stack()
 }
 #endif
 
+#if !defined(MACOS_X_UNIX)
+#define MCH_MONOTONIC_TIME
+	unsigned long long
+mch_monotonic_time(void)
+{
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+}
+#endif
+
 /*
  * We need correct prototypes for a signal function, otherwise mean compilers
  * will barf when the second argument to signal() is ``wrong''.
