@@ -892,6 +892,17 @@ catch_sigpwr SIGDEFARG(sigarg)
 }
 #endif
 
+#if !defined(MACOS_X_UNIX)
+#define MCH_MONOTONIC_TIME
+	unsigned long long
+mch_monotonic_time(void)
+{
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+}
+#endif
+
 #ifdef SET_SIG_ALARM
 /*
  * signal function for alarm().
@@ -5050,7 +5061,7 @@ RealWaitForChar(fd, msec, check_for_gpm)
 #ifdef FEAT_NETBEANS_INTG
     int		nb_fd = netbeans_filedesc();
 #endif
-#if defined(FEAT_XCLIPBOARD) || defined(USE_XSMP) || defined(FEAT_MZSCHEME)
+#if defined(FEAT_XCLIPBOARD) || defined(USE_XSMP) || defined(FEAT_MZSCHEME) || defined(FEAT_ASYNC)
     static int	busy = FALSE;
 
     /* May retry getting characters after an event was handled. */
@@ -5065,18 +5076,24 @@ RealWaitForChar(fd, msec, check_for_gpm)
     if (msec > 0 && (
 #  ifdef FEAT_XCLIPBOARD
 	    xterm_Shell != (Widget)0
-#   if defined(USE_XSMP) || defined(FEAT_MZSCHEME)
+#   if defined(USE_XSMP) || defined(FEAT_MZSCHEME) || defined(FEAT_ASYNC)
 	    ||
 #   endif
 #  endif
 #  ifdef USE_XSMP
 	    xsmp_icefd != -1
-#   ifdef FEAT_MZSCHEME
+#   if defined(FEAT_MZSCHEME) || defined(FEAT_ASYNC)
 	    ||
 #   endif
 #  endif
 #  ifdef FEAT_MZSCHEME
 	(mzthreads_allowed() && p_mzq > 0)
+#   ifdef FEAT_ASYNC
+	    ||
+#   endif
+#  endif
+#  ifdef FEAT_ASYNC
+	TRUE
 #  endif
 	    ))
 	gettimeofday(&start_tv, NULL);
@@ -5121,6 +5138,12 @@ RealWaitForChar(fd, msec, check_for_gpm)
 	{
 	    towait = (int)p_mzq;    /* don't wait longer than 'mzquantum' */
 	    mzquantum_used = TRUE;
+	}
+# endif
+# ifdef FEAT_ASYNC
+	call_timeouts();
+	if (p_tt > 0 && (msec < 0 || msec > p_tt)) {
+		towait = p_tt;
 	}
 # endif
 	fds[0].fd = fd;
@@ -5250,6 +5273,12 @@ RealWaitForChar(fd, msec, check_for_gpm)
 	    mzquantum_used = TRUE;
 	}
 # endif
+# ifdef FEAT_ASYNC
+	call_timeouts();
+	if (p_tt > 0 && (msec < 0 || msec > p_tt)) {
+		towait = p_tt;
+	}
+# endif
 # ifdef __EMX__
 	/* don't check for incoming chars if not in raw mode, because select()
 	 * always returns TRUE then (in some version of emx.dll) */
@@ -5360,6 +5389,10 @@ select_eintr:
 # ifdef FEAT_MZSCHEME
 	if (ret == 0 && mzquantum_used)
 	    /* loop if MzThreads must be scheduled and timeout occurred */
+	    finished = FALSE;
+# endif
+# ifdef FEAT_ASYNC
+	if (ret == 0 && msec > p_tt)
 	    finished = FALSE;
 # endif
 
@@ -7359,6 +7392,5 @@ char CtrlCharTable[]=
       0,  0,  0,  0,  0,  0,230,173,  0,  0,  0,  0,  0,197,198,199,
       0,  0,229,  0,  0,  0,  0,196,  0,  0,  0,  0,227,228,  0,233,
 };
-
 
 #endif
