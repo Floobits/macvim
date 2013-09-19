@@ -379,7 +379,6 @@ mch_inchar(buf, maxlen, wtime, tb_change_cnt)
     int		tb_change_cnt;
 {
     int		len;
-    int 	retval = FAIL;
 
 #ifdef FEAT_NETBEANS_INTG
     /* Process the queued netbeans messages. */
@@ -394,8 +393,7 @@ mch_inchar(buf, maxlen, wtime, tb_change_cnt)
     if (wtime >= 0)
     {
 	while (WaitForChar(wtime) == 0)		/* no character available */
-	{	
-		call_timeouts();
+	{
 	    if (!do_resize)	/* return if not interrupted by resize */
 		return 0;
 	    handle_resize();
@@ -412,22 +410,7 @@ mch_inchar(buf, maxlen, wtime, tb_change_cnt)
 	 * flush all the swap files to disk.
 	 * Also done when interrupted by SIGWINCH.
 	 */
-
-#ifdef FEAT_ASYNC
-	int t = 0;
-	while (t < p_ut) {
-		retval = WaitForChar(p_tt);
-		call_timeouts();
-		t += p_tt;
-		if (retval == OK) {
-			break;
-		}
-	}
-#else
-	retval = WaitForChar(p_ut);
-#endif
-
-	if (retval == FAIL)
+	if (WaitForChar(p_ut) == 0)
 	{
 #ifdef FEAT_AUTOCMD
 	    if (trigger_cursorhold() && maxlen >= 3
@@ -457,29 +440,12 @@ mch_inchar(buf, maxlen, wtime, tb_change_cnt)
 	 * We want to be interrupted by the winch signal
 	 * or by an event on the monitored file descriptors.
 	 */
-
-	
-	#ifdef FEAT_ASYNC
-	while (TRUE) {
-		retval = WaitForChar(p_tt);
-		call_timeouts();
-		if (retval == OK) {
-			break;
-		}
-	    if (do_resize) {
-    	    /* interrupted by SIGWINCH signal */
-    		handle_resize();
-    	    return 0;
-	    }
-	}
-	#else
 	if (WaitForChar(-1L) == 0)
 	{
 	    if (do_resize)	    /* interrupted by SIGWINCH signal */
 		handle_resize();
 	    return 0;
 	}
-	#endif
 #endif
 
 	/* If input was put directly in typeahead buffer bail out here. */
@@ -883,17 +849,6 @@ init_signal_stack()
 }
 #endif
 
-#if !defined(MACOS_X_UNIX)
-#define MCH_MONOTONIC_TIME
-	unsigned long long
-mch_monotonic_time(void)
-{
-	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-	return ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
-}
-#endif
-
 /*
  * We need correct prototypes for a signal function, otherwise mean compilers
  * will barf when the second argument to signal() is ``wrong''.
@@ -934,6 +889,17 @@ catch_sigpwr SIGDEFARG(sigarg)
      */
     ml_sync_all(FALSE, FALSE);
     SIGRETURN;
+}
+#endif
+
+#if !defined(MACOS_X_UNIX)
+#define MCH_MONOTONIC_TIME
+	unsigned long long
+mch_monotonic_time(void)
+{
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 }
 #endif
 
@@ -1002,8 +968,10 @@ mch_didjmp()
 
 /*
  * This function handles deadly signals.
- * It tries to preserve any swap file and exit properly.
+ * It tries to preserve any swap files and exit properly.
  * (partly from Elvis).
+ * NOTE: Avoid unsafe functions, such as allocating memory, they can result in
+ * a deadlock.
  */
     static RETSIGTYPE
 deathtrap SIGDEFARG(sigarg)
@@ -1135,18 +1103,23 @@ deathtrap SIGDEFARG(sigarg)
     }
     if (entered == 2)
     {
-	OUT_STR(_("Vim: Double signal, exiting\n"));
+	/* No translation, it may call malloc(). */
+	OUT_STR("Vim: Double signal, exiting\n");
 	out_flush();
 	getout(1);
     }
 
+    /* No translation, it may call malloc(). */
 #ifdef SIGHASARG
-    sprintf((char *)IObuff, _("Vim: Caught deadly signal %s\n"),
+    sprintf((char *)IObuff, "Vim: Caught deadly signal %s\n",
 							 signal_info[i].name);
 #else
-    sprintf((char *)IObuff, _("Vim: Caught deadly signal\n"));
+    sprintf((char *)IObuff, "Vim: Caught deadly signal\n");
 #endif
-    preserve_exit();		    /* preserve files and exit */
+
+    /* Preserve files and exit.  This sets the really_exiting flag to prevent
+     * calling free(). */
+    preserve_exit();
 
 #ifdef NBDEBUG
     reset_signals();
@@ -5117,7 +5090,7 @@ RealWaitForChar(fd, msec, check_for_gpm)
 #ifdef FEAT_NETBEANS_INTG
     int		nb_fd = netbeans_filedesc();
 #endif
-#if defined(FEAT_XCLIPBOARD) || defined(USE_XSMP) || defined(FEAT_MZSCHEME)
+#if defined(FEAT_XCLIPBOARD) || defined(USE_XSMP) || defined(FEAT_MZSCHEME) || defined(FEAT_ASYNC)
     static int	busy = FALSE;
 
     /* May retry getting characters after an event was handled. */
@@ -5132,18 +5105,24 @@ RealWaitForChar(fd, msec, check_for_gpm)
     if (msec > 0 && (
 #  ifdef FEAT_XCLIPBOARD
 	    xterm_Shell != (Widget)0
-#   if defined(USE_XSMP) || defined(FEAT_MZSCHEME)
+#   if defined(USE_XSMP) || defined(FEAT_MZSCHEME) || defined(FEAT_ASYNC)
 	    ||
 #   endif
 #  endif
 #  ifdef USE_XSMP
 	    xsmp_icefd != -1
-#   ifdef FEAT_MZSCHEME
+#   if defined(FEAT_MZSCHEME) || defined(FEAT_ASYNC)
 	    ||
 #   endif
 #  endif
 #  ifdef FEAT_MZSCHEME
 	(mzthreads_allowed() && p_mzq > 0)
+#   ifdef FEAT_ASYNC
+	    ||
+#   endif
+#  endif
+#  ifdef FEAT_ASYNC
+	TRUE
 #  endif
 	    ))
 	gettimeofday(&start_tv, NULL);
@@ -5188,6 +5167,12 @@ RealWaitForChar(fd, msec, check_for_gpm)
 	{
 	    towait = (int)p_mzq;    /* don't wait longer than 'mzquantum' */
 	    mzquantum_used = TRUE;
+	}
+# endif
+# ifdef FEAT_ASYNC
+	call_timeouts();
+	if (p_tt > 0 && (msec < 0 || msec > p_tt)) {
+		towait = p_tt;
 	}
 # endif
 	fds[0].fd = fd;
@@ -5317,6 +5302,12 @@ RealWaitForChar(fd, msec, check_for_gpm)
 	    mzquantum_used = TRUE;
 	}
 # endif
+# ifdef FEAT_ASYNC
+	call_timeouts();
+	if (p_tt > 0 && (msec < 0 || msec > p_tt)) {
+		towait = p_tt;
+	}
+# endif
 # ifdef __EMX__
 	/* don't check for incoming chars if not in raw mode, because select()
 	 * always returns TRUE then (in some version of emx.dll) */
@@ -5427,6 +5418,10 @@ select_eintr:
 # ifdef FEAT_MZSCHEME
 	if (ret == 0 && mzquantum_used)
 	    /* loop if MzThreads must be scheduled and timeout occurred */
+	    finished = FALSE;
+# endif
+# ifdef FEAT_ASYNC
+	if (ret == 0 && msec > p_tt)
 	    finished = FALSE;
 # endif
 
@@ -7426,6 +7421,5 @@ char CtrlCharTable[]=
       0,  0,  0,  0,  0,  0,230,173,  0,  0,  0,  0,  0,197,198,199,
       0,  0,229,  0,  0,  0,  0,196,  0,  0,  0,  0,227,228,  0,233,
 };
-
 
 #endif
