@@ -674,7 +674,7 @@ static void f_setline __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_setloclist __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_setmatches __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_setpos __ARGS((typval_T *argvars, typval_T *rettv));
-#ifdef FEAT_ASYNC
+#ifdef FEAT_TIMERS
 static void f_canceltimeout __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_setinterval __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_settimeout __ARGS((typval_T *argvars, typval_T *rettv));
@@ -7867,7 +7867,7 @@ static struct fst
     {"byte2line",	1, 1, f_byte2line},
     {"byteidx",		2, 2, f_byteidx},
     {"call",		2, 3, f_call},
-#ifdef FEAT_ASYNC
+#ifdef FEAT_TIMERS
     {"canceltimeout", 1, 1, f_canceltimeout},
 #endif
 #ifdef FEAT_FLOAT
@@ -8068,7 +8068,7 @@ static struct fst
     {"serverlist",	0, 0, f_serverlist},
     {"setbufvar",	3, 3, f_setbufvar},
     {"setcmdpos",	1, 1, f_setcmdpos},
-#ifdef FEAT_ASYNC
+#ifdef FEAT_TIMERS
     {"setinterval",    2, 2, f_setinterval},
 #endif
     {"setline",		2, 2, f_setline},
@@ -8079,7 +8079,7 @@ static struct fst
     {"setreg",		2, 3, f_setreg},
     {"settabvar",	3, 3, f_settabvar},
     {"settabwinvar",	4, 4, f_settabwinvar},
-#ifdef FEAT_ASYNC
+#ifdef FEAT_TIMERS
     {"settimeout",    2, 2, f_settimeout},
 #endif
     {"setwinvar",	3, 3, f_setwinvar},
@@ -12441,8 +12441,8 @@ f_has(argvars, rettv)
 #ifdef FEAT_RELTIME
 	"reltime",
 #endif
-#ifdef FEAT_ASYNC
-    "async",
+#ifdef FEAT_TIMERS
+    "timers",
 #endif
 #ifdef FEAT_QUICKFIX
 	"quickfix",
@@ -16621,7 +16621,7 @@ f_setmatches(argvars, rettv)
 #endif
 }
 
-#ifdef FEAT_ASYNC
+#ifdef FEAT_TIMERS
 static int timeout_id = 0;
 
     static void

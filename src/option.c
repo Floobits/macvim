@@ -2630,7 +2630,7 @@ static struct vimoption
 			    (char_u *)NULL, PV_NONE,
 #endif
 			    {(char_u *)"", (char_u *)0L} SCRIPTID_INIT},
-#ifdef FEAT_ASYNC
+#ifdef FEAT_TIMERS
     {"ticktime",  "tt",   P_NUM|P_VI_DEF,
 			    (char_u *)&p_tt, PV_NONE,
 			    {(char_u *)100L, (char_u *)0L} SCRIPTID_INIT},

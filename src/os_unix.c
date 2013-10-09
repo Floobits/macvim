@@ -5090,7 +5090,7 @@ RealWaitForChar(fd, msec, check_for_gpm)
 #ifdef FEAT_NETBEANS_INTG
     int		nb_fd = netbeans_filedesc();
 #endif
-#if defined(FEAT_XCLIPBOARD) || defined(USE_XSMP) || defined(FEAT_MZSCHEME) || defined(FEAT_ASYNC)
+#if defined(FEAT_XCLIPBOARD) || defined(USE_XSMP) || defined(FEAT_MZSCHEME) || defined(FEAT_TIMERS)
     static int	busy = FALSE;
 
     /* May retry getting characters after an event was handled. */
@@ -5105,23 +5105,23 @@ RealWaitForChar(fd, msec, check_for_gpm)
     if (msec > 0 && (
 #  ifdef FEAT_XCLIPBOARD
 	    xterm_Shell != (Widget)0
-#   if defined(USE_XSMP) || defined(FEAT_MZSCHEME) || defined(FEAT_ASYNC)
+#   if defined(USE_XSMP) || defined(FEAT_MZSCHEME) || defined(FEAT_TIMERS)
 	    ||
 #   endif
 #  endif
 #  ifdef USE_XSMP
 	    xsmp_icefd != -1
-#   if defined(FEAT_MZSCHEME) || defined(FEAT_ASYNC)
+#   if defined(FEAT_MZSCHEME) || defined(FEAT_TIMERS)
 	    ||
 #   endif
 #  endif
 #  ifdef FEAT_MZSCHEME
 	(mzthreads_allowed() && p_mzq > 0)
-#   ifdef FEAT_ASYNC
+#   ifdef FEAT_TIMERS
 	    ||
 #   endif
 #  endif
-#  ifdef FEAT_ASYNC
+#  ifdef FEAT_TIMERS
 	TRUE
 #  endif
 	    ))
@@ -5169,7 +5169,7 @@ RealWaitForChar(fd, msec, check_for_gpm)
 	    mzquantum_used = TRUE;
 	}
 # endif
-# ifdef FEAT_ASYNC
+# ifdef FEAT_TIMERS
 	call_timeouts();
 	if (p_tt > 0 && (msec < 0 || msec > p_tt)) {
 		towait = p_tt;
@@ -5302,7 +5302,7 @@ RealWaitForChar(fd, msec, check_for_gpm)
 	    mzquantum_used = TRUE;
 	}
 # endif
-# ifdef FEAT_ASYNC
+# ifdef FEAT_TIMERS
 	call_timeouts();
 	if (p_tt > 0 && (msec < 0 || msec > p_tt)) {
 		towait = p_tt;
@@ -5420,7 +5420,7 @@ select_eintr:
 	    /* loop if MzThreads must be scheduled and timeout occurred */
 	    finished = FALSE;
 # endif
-# ifdef FEAT_ASYNC
+# ifdef FEAT_TIMERS
 	if (ret == 0 && msec > p_tt)
 	    finished = FALSE;
 # endif

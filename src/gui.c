@@ -2944,7 +2944,7 @@ gui_wait_for_chars(wtime)
 
     int i = 0;
     while (i < p_ut) {
-#ifdef FEAT_ASYNC
+#ifdef FEAT_TIMERS
 		retval = gui_mch_wait_for_chars(p_tt);
 		call_timeouts();
 		i += p_tt;

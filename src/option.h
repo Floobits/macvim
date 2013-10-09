@@ -810,7 +810,7 @@ EXTERN char_u	*p_tsr;		/* 'thesaurus' */
 #ifdef FEAT_TRANSPARENCY
 EXTERN long     p_transp;       /* 'transparency' */
 #endif
-#ifdef FEAT_ASYNC
+#ifdef FEAT_TIMERS
 EXTERN long	p_tt;		/* 'ticktime' */
 #endif
 EXTERN int	p_ttimeout;	/* 'ttimeout' */

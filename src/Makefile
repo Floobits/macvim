@@ -1440,7 +1440,6 @@ DEST_MAN_RU_U = $(DEST_MAN_TOP)/ru.UTF-8$(MAN1DIR)
 TAGS_INCL = *.h
 
 BASIC_SRC = \
-	async.c \
 	blowfish.c \
 	buffer.c \
 	charset.c \
@@ -1485,6 +1484,7 @@ BASIC_SRC = \
 	syntax.c \
 	tag.c \
 	term.c \
+	timers.c \
 	ui.c \
 	undo.c \
 	version.c \
@@ -1530,7 +1530,6 @@ LINT_SRC = $(BASIC_SRC) $(GUI_SRC) $(HANGULIN_SRC) $(PYTHON_SRC) $(PYTHON3_SRC) 
 #LINT_SRC = $(BASIC_SRC)
 
 OBJ_COMMON = \
-	objects/async.o \
 	objects/buffer.o \
 	objects/blowfish.o \
 	objects/charset.o \
@@ -1648,6 +1647,7 @@ PRO_AUTO = \
 	tag.pro \
 	term.pro \
 	termlib.pro \
+	timers.pro \
 	ui.pro \
 	undo.pro \
 	version.pro \
@@ -2755,6 +2755,9 @@ objects/tag.o: tag.c
 objects/term.o: term.c
 	$(CCC) -o $@ term.c
 
+objects/timers.o: timers.c
+	$(CCC) -o $@ timers.c
+
 objects/ui.o: ui.c
 	$(CCC) -o $@ ui.c
 
@@ -2772,9 +2775,6 @@ objects/wsdebug.o: wsdebug.c
 
 objects/netbeans.o: netbeans.c
 	$(CCC) -o $@ netbeans.c
-
-objects/async.o: async.c
-	$(CCC) -o $@ async.c
 
 Makefile:
 	@echo The name of the makefile MUST be "Makefile" (with capital M)!!!!
@@ -3051,6 +3051,9 @@ objects/term.o: term.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro ex_cmds.h proto.h globals.h farsi.h \
  arabic.h
+objects/timers.o: timers.c vim.h auto/config.h feature.h os_unix.h os_mac.h ascii.h \
+ keymap.h term.h macros.h option.h structs.h regexp.h gui.h ex_cmds.h \
+ proto.h proto/timers.pro globals.h farsi.h arabic.h auto/osdef.h
 objects/ui.o: ui.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h ascii.h \
  keymap.h term.h macros.h option.h structs.h regexp.h gui.h gui_beval.h \
  proto/gui_beval.pro ex_cmds.h proto.h globals.h farsi.h arabic.h
