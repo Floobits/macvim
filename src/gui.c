@@ -2946,7 +2946,7 @@ gui_wait_for_chars(wtime)
     while (i < p_ut) {
 #ifdef FEAT_TIMERS
 		retval = gui_mch_wait_for_chars(p_tt);
-		call_timeouts();
+		(void)call_timeouts((long)p_ut);
 		i += p_tt;
 #else
 		retval = gui_mch_wait_for_chars(p_ut);

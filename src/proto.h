@@ -292,3 +292,7 @@ extern char *vim_SelFile __ARGS((Widget toplevel, char *prompt, char *init_path,
 # define _PROTO_H
 #endif
 #endif /* !PROTO && !NOPROTO */
+
+#ifdef FEAT_TIMERS
+# include "timers.pro"
+#endif

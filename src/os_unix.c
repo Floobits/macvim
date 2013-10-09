@@ -5170,10 +5170,7 @@ RealWaitForChar(fd, msec, check_for_gpm)
 	}
 # endif
 # ifdef FEAT_TIMERS
-	call_timeouts();
-	if (p_tt > 0 && (msec < 0 || msec > p_tt)) {
-		towait = p_tt;
-	}
+	towait = call_timeouts(msec);
 # endif
 	fds[0].fd = fd;
 	fds[0].events = POLLIN;
@@ -5303,10 +5300,7 @@ RealWaitForChar(fd, msec, check_for_gpm)
 	}
 # endif
 # ifdef FEAT_TIMERS
-	call_timeouts();
-	if (p_tt > 0 && (msec < 0 || msec > p_tt)) {
-		towait = p_tt;
-	}
+	towait = call_timeouts(msec);
 # endif
 # ifdef __EMX__
 	/* don't check for incoming chars if not in raw mode, because select()

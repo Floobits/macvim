@@ -1630,3 +1630,6 @@ EXTERN char *ignoredp;
 #ifdef FEAT_ARABIC
 # include "arabic.h"
 #endif
+
+
+EXTERN timeout_T *timeouts INIT(= NULL);

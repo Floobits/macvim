@@ -1574,6 +1574,7 @@ OBJ_COMMON = \
 	$(SNIFF_OBJ) \
 	objects/tag.o \
 	objects/term.o \
+	objects/timers.o \
 	objects/ui.o \
 	objects/undo.o \
 	objects/version.o \
