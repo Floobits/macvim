@@ -1,6 +1,11 @@
 #include "vim.h"
 
-#ifdef FEAT_ASYNC
+#ifdef FEAT_TIMERS
+
+/*
+ * Avoid recursive calls to call_timeouts
+ */
+static int calling_timeouts = FALSE;
 
 /*
  * Return monotonic time, if available. Fall back to gettimeofday otherwise.
@@ -42,7 +47,7 @@ insert_timeout(to)
 			if (prev)
 			{
 				prev->next = to;
-			} 
+			}
 			else 
 			{
 				timeouts = to;
@@ -59,30 +64,84 @@ insert_timeout(to)
 
 /*
  * Execute timeouts that are due.
- * This is called every ticktime milliseconds by low-level input functions.
+ * Return the amount of time before call_timeouts() should be run again.
  */
-	void
-call_timeouts(void)
+	long
+call_timeouts(max_to_wait)
+	long max_to_wait;
 {
-	unsigned long long tm = get_monotonic_time();
-	timeout_T *tmp;
+	unsigned long long now = get_monotonic_time();
+	unsigned long long then;
 
-	while (timeouts != NULL && timeouts->tm < tm)
+	unsigned long long towait = p_tt;
+	timeout_T *tmp;
+	int retval;
+
+	if (calling_timeouts) {
+		return towait;
+	}
+
+	calling_timeouts = TRUE;
+
+	while (timeouts != NULL && timeouts->tm < now)
 	{
-		do_cmdline_cmd(timeouts->cmd);
+		retval = do_cmdline_cmd(timeouts->cmd);
+		then = get_monotonic_time();
+		if (then - now > 5000)
+		{
+			EMSG3("Warning, took a forevers: %s, %llu", timeouts->cmd, then - now);
+		}
 		tmp = timeouts;
 		timeouts = timeouts->next;
-		if (tmp->interval == -1)
-		{
+		if (tmp->interval == -1 || retval == FAIL || did_throw || did_emsg)
+		{	
+			if (got_int) 
+			{
+				if (tmp->sourcing_lnum) 
+				{
+					EMSG(_("E881: An interval was canceled because of an interrupt"));
+					EMSG3(_("%s:%s"), tmp->sourcing_name, tmp->sourcing_lnum);
+				} 
+				else 
+				{
+					EMSG(_("E881: An interval was canceled because of an interrupt"));
+					EMSG2(_("%s"), tmp->sourcing_name);
+				}
+			}
 			free(tmp->cmd);
+			free(tmp->sourcing_name);
 			free(tmp);
 		} 
 		else
 		{
-			tmp->tm = tm + tmp->interval;
+			tmp->tm = now + tmp->interval;
 			insert_timeout(tmp);
 		}
 	}
+
+	calling_timeouts = FALSE;
+
+	/* if there is not a timer, change towait so that it will get called */
+	if (timeouts != NULL && max_to_wait != 0)
+	{
+		now = get_monotonic_time();
+		if (now > timeouts->tm)
+			return p_tt;
+
+		towait = timeouts->tm - now;
+
+		/* don't wake up every 1 ms ... limit to p_tt */
+		if (towait < p_tt)
+			towait = p_tt;
+
+		/* don't overshoot the wait time */
+		if (max_to_wait > 0 && towait > max_to_wait)
+			towait = max_to_wait;
+
+        return towait;
+	}
+
+	return max_to_wait;
 }
 
 #endif
