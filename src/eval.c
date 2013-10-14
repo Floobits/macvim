@@ -16698,6 +16698,12 @@ f_canceltimeout(argvars, rettv)
     while (tmp != NULL) {
         next = tmp->next;
         if (tmp->id == id) {
+            /* We can't free a timeout from within that timeout ... just wait for it to end */
+            if (calling_timeouts == TRUE && timeouts == tmp)
+            {
+                tmp->interval = -1;
+                return;
+            }
             if (prev) {
                 prev->next = next;
             } else {
