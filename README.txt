@@ -1,5 +1,9 @@
 README.txt for version 7.4 of Vim: Vi IMproved.
 
+Compiling Instructions for Floobits:
+gcc=clang ./configure --enable-pythoninterp --enable-rubyinterp --enable-perlinterp --with-features=HUGE --enable-cscope
+make
+
 
 WHAT IS VIM
 
